@@ -1,15 +1,16 @@
 # https://github.com/BoyuanJackChen/MiniProject2_VisTrans.git
 
-import time
 import argparse
+import csv
 import os
+import pprint
+import time
 
 import numpy as np
 import torch
-from torch import optim, nn
 import torch.backends.cudnn as cudnn
 import torch.nn.functional as F
-import csv
+from torch import optim, nn
 
 from utils import get_data_loader, count_parameters, calculate_macs
 from vit_pytorch import ViT
@@ -32,6 +33,7 @@ parser.add_argument('--test_batch', type=int, default=100)
 parser.add_argument('--dimhead', default="64", type=int)
 
 FLAGS = parser.parse_args()
+
 
 def main(args):
     # Use gpu if available
@@ -84,7 +86,6 @@ def main(args):
     else:
         raise ValueError(f"Unknown dataset: {args.dataset}")
 
-
     print('==> Building model..')
     if args.model == "vit":
         model = ViT(image_size=image_size, patch_size=patch_size, num_classes=num_classes, dim=int(args.dimhead),
@@ -93,7 +94,7 @@ def main(args):
         raise ValueError(f"Unknown model: {args.model}")
     print(f"Model has {count_parameters(model)} parameters")
     if device == 'cuda':
-        model = torch.nn.DataParallel(model)    # make parallel
+        model = torch.nn.DataParallel(model)  # make parallel
         cudnn.benchmark = True
 
     model = model.to(device)
@@ -110,42 +111,44 @@ def main(args):
         checkpoint = torch.load(args.load_checkpoint)
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        start_epoch = checkpoint['epoch']+1
+        start_epoch = checkpoint['epoch'] + 1
         train_loss_history = checkpoint['train_loss']
         test_loss_history = checkpoint['test_loss']
         test_accuracy_history = checkpoint['accuracy']
 
-    metrics = {"examples_seen": 0, "total_time": 0, "img_per_sec": 0, "core_hours": 0, "macs": macs}
+    metrics = {"examples_seen": 0, "total_time": 0, "img_per_sec": 0, "core_hours": 0, "macs": macs,
+               "params": params}
 
     print('==> Training starts')
     for epoch in range(start_epoch, args.epochs + 1):
         start_time = time.time()
         print('Epoch:', epoch)
         train_loss_history = train_epoch(model, device, optimizer, criterion,
-                    train_loader, train_loss_history, metrics)
+                                         train_loader, train_loss_history, metrics)
         test_loss_history, test_accuracy_history = evaluate_model(model, device, test_loader, test_loss_history,
-                       test_accuracy_history, metrics)
+                                                                  test_accuracy_history, metrics)
 
         epoch_time = time.time() - start_time
 
+        data = {
+            "Epoch": epoch,
+            "Examples Seen": metrics["examples_seen"],
+            "Images Per Second (Per Thread)": metrics["img_per_sec"] / torch.get_num_threads(),
+            "Core Hours": metrics["core_hours"],
+            "Epoch Time (s)": epoch_time,
+            "Accuracy": metrics["accuracy"],
+            "MACs": metrics["macs"],
+            "Params": metrics["params"]
+        }
+
         print(f"Epoch took: {epoch_time:.2f} seconds")
-        print(f"Images/sec/core: {metrics['img_per_sec'] / torch.get_num_threads():.2f}")
-        print(f"Examples seen so far: {metrics['examples_seen']}")
-        print(f"Core hours used: {metrics['core_hours']:.4f} h")
-        print(f"Accuracy: {metrics['accuracy']:.4f}")
-        print(f"MACs: {metrics['macs']}")
+        pprint.pprint(data)
 
         with open(f"{args.model}_{args.dataset}_training_metrics.csv", mode="a", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow([
-                epoch,
-                metrics["examples_seen"],
-                metrics["img_per_sec"] / torch.get_num_threads(),
-                metrics["core_hours"],
-                epoch_time,
-                metrics["accuracy"],
-                metrics["macs"]
-            ])
+            writer = csv.DictWriter(file, fieldnames=data.keys())
+            if file.tell() == 0:
+                writer.writeheader()
+            writer.writerow(data)
 
         if epoch % args.checkpoint == 0 or epoch == args.epochs:
             torch.save({
@@ -181,7 +184,7 @@ def train_epoch(model, device, optimizer, criterion, data_loader, loss_history, 
             elapsed_time = time.perf_counter() - start_time
             img_per_sec = examples_seen / elapsed_time
 
-            print('['+'{:5}'.format(i * len(data)) + '/' + '{:5}'.format(total_samples) +
+            print('[' + '{:5}'.format(i * len(data)) + '/' + '{:5}'.format(total_samples) +
                   ' (' + '{:3.0f}'.format(100 * i / len(data_loader)) + '%)]  Loss: ' +
                   '{:6.4f}'.format(loss.item()) + ', Img/sec: {:.2f}'.format(img_per_sec))
             loss_history = np.append(loss_history, loss.item())

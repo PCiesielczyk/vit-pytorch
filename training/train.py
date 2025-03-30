@@ -132,7 +132,7 @@ def main(args):
         print(f"Core hours used: {metrics['core_hours']:.4f} h")
         print(f"Accuracy: {metrics['accuracy']:.4f}")
 
-        with open("training_metrics.csv", mode="a", newline="") as file:
+        with open(f"{args.model}_{args.dataset}_training_metrics.csv", mode="a", newline="") as file:
             writer = csv.writer(file)
             writer.writerow([
                 epoch,

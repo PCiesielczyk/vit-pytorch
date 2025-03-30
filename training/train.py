@@ -11,7 +11,7 @@ import torch.backends.cudnn as cudnn
 import torch.nn.functional as F
 import csv
 
-from training.utils import get_data_loader, count_parameters
+from utils import get_data_loader, count_parameters
 from vit_pytorch import ViT
 
 parser = argparse.ArgumentParser()

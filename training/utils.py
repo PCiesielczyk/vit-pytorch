@@ -3,6 +3,7 @@
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
+from ptflops import get_model_complexity_info
 from torchvision import datasets, transforms
 
 
@@ -168,7 +169,14 @@ def get_data_loader(args, train_kwargs, test_kwargs):
 
     return train_loader, test_loader
 
+def calculate_macs(model, input_size=(3, 32, 32)):
+    macs, params = get_model_complexity_info(model, input_size, as_strings=True,
+                                             print_per_layer_stat=False, verbose=False)
+    print(f"FLOPs: {macs}")
+    print(f"Params: {params}")
+    return macs, params
 
 if __name__ == '__main__':
     path = "../checkpoints/Mixup/lr1e-3/e300_b64_lr0.001.pt"
     analyze_checkpoint(path)
+

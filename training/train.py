@@ -11,7 +11,7 @@ import torch.backends.cudnn as cudnn
 import torch.nn.functional as F
 import csv
 
-from utils import get_data_loader, count_parameters
+from utils import get_data_loader, count_parameters, calculate_macs
 from vit_pytorch import ViT
 
 parser = argparse.ArgumentParser()
@@ -100,6 +100,8 @@ def main(args):
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     criterion = nn.CrossEntropyLoss()
 
+    macs, params = calculate_macs(model, input_size=(3, image_size, image_size))
+
     start_epoch = 1
     train_loss_history, test_loss_history, test_accuracy_history = np.array(
         []), np.array([]), np.array([])
@@ -113,7 +115,7 @@ def main(args):
         test_loss_history = checkpoint['test_loss']
         test_accuracy_history = checkpoint['accuracy']
 
-    metrics = {"examples_seen": 0, "total_time": 0, "img_per_sec": 0, "core_hours": 0}
+    metrics = {"examples_seen": 0, "total_time": 0, "img_per_sec": 0, "core_hours": 0, "macs": macs}
 
     print('==> Training starts')
     for epoch in range(start_epoch, args.epochs + 1):
@@ -131,6 +133,7 @@ def main(args):
         print(f"Examples seen so far: {metrics['examples_seen']}")
         print(f"Core hours used: {metrics['core_hours']:.4f} h")
         print(f"Accuracy: {metrics['accuracy']:.4f}")
+        print(f"MACs: {metrics['macs']}")
 
         with open(f"{args.model}_{args.dataset}_training_metrics.csv", mode="a", newline="") as file:
             writer = csv.writer(file)
@@ -140,7 +143,8 @@ def main(args):
                 metrics["img_per_sec"] / torch.get_num_threads(),
                 metrics["core_hours"],
                 epoch_time,
-                metrics["accuracy"]
+                metrics["accuracy"],
+                metrics["macs"]
             ])
 
         if epoch % args.checkpoint == 0 or epoch == args.epochs:

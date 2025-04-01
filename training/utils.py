@@ -172,7 +172,7 @@ def get_data_loader(args, train_kwargs, test_kwargs):
 def calculate_macs(model, input_size=(3, 32, 32)):
     macs, params = get_model_complexity_info(model, input_size, as_strings=True,
                                              print_per_layer_stat=False, verbose=False)
-    print(f"FLOPs: {macs}")
+    print(f"MACs: {macs}")
     print(f"Params: {params}")
     return macs, params
 

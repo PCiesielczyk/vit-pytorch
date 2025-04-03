@@ -24,7 +24,7 @@ parser.add_argument('--load_checkpoint', type=str, default=None)
 parser.add_argument('--resume', '-r', action='store_true')
 
 # General
-parser.add_argument('--lr', default=1e-2, type=float)
+parser.add_argument('--lr', default=1e-4, type=float)
 parser.add_argument('--train_batch', type=int, default=10)
 parser.add_argument('--test_batch', type=int, default=100)
 
@@ -117,9 +117,9 @@ def main(args):
     for epoch in range(start_epoch, args.epochs + 1):
         start_time = time.time()
         print('Epoch:', epoch)
+        train_loss_history = train_epoch(distiller, device, optimizer, train_loader, train_loss_history, metrics)
         test_loss_history, test_accuracy_history = evaluate_model(distiller, device, test_loader, test_loss_history,
                                                                   test_accuracy_history, metrics)
-        train_loss_history = train_epoch(distiller, device, optimizer, train_loader, train_loss_history, metrics)
 
         epoch_time = time.time() - start_time
 

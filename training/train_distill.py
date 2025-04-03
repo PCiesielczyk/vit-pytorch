@@ -137,7 +137,7 @@ def main(args):
         print(f"Epoch took: {epoch_time:.2f} seconds")
         pprint.pprint(data)
 
-        with open(f"{args.model}_{args.dataset}_training_metrics.csv", mode="a", newline="") as file:
+        with open(f"Distill_{args.dataset}_training_metrics.csv", mode="a", newline="") as file:
             writer = csv.DictWriter(file, fieldnames=data.keys())
             if file.tell() == 0:
                 writer.writeheader()
@@ -151,7 +151,7 @@ def main(args):
                 'train_loss': train_loss_history,
                 'test_loss': test_loss_history,
                 'accuracy': test_accuracy_history,
-            }, PATH + f"/{args.model}_{args.dataset}_e{epoch}_b{args.train_batch}_lr{args.lr}.pt")
+            }, PATH + f"/Distill_{args.dataset}_e{epoch}_b{args.train_batch}_lr{args.lr}.pt")
             print(f"Checkpoint {args.dataset}_e{epoch}_b{args.train_batch}_lr{args.lr}.pt saved")
 
 

@@ -2,6 +2,7 @@ import torch
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
+from tqdm import tqdm
 
 from utils import count_parameters
 
@@ -39,7 +40,7 @@ def main():
     for epoch in range(epochs):
         model.train()
         running_loss = 0.0
-        for images, labels in trainloader:
+        for batch_idx, (images, labels) in enumerate(tqdm(trainloader, desc=f"Epoch {epoch + 1}", unit="batch")):
             images, labels = images.to(device), labels.to(device)
 
             optimizer.zero_grad()

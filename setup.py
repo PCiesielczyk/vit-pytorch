@@ -23,7 +23,8 @@ setup(
     'einops>=0.7.0',
     'torch>=1.10',
     'torchvision',
-    'ptflops'
+    'ptflops',
+    'tqdm'
   ],
   setup_requires=[
     'pytest-runner',

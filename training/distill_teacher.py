@@ -3,7 +3,7 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 
-from training.utils import count_parameters
+from utils import count_parameters
 
 batch_size = 128
 epochs = 10

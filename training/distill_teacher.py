@@ -3,14 +3,15 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 
+from training.utils import count_parameters
+
 batch_size = 128
 epochs = 10
 learning_rate = 0.001
 
 transform = transforms.Compose([
-    transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.5], std=[0.5])
+    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
 ])
 
 def main():
@@ -24,7 +25,10 @@ def main():
     testset = datasets.SVHN(root='../data', split='test', transform=transform, download=True)
     testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False)
 
-    model = models.resnet50(weights=None)
+    print('==> Building model..')
+    model = models.resnet18(weights=None)
+    print(f"Model has {count_parameters(model)} parameters")
+
     num_ftrs = model.fc.in_features
     model.fc = torch.nn.Linear(num_ftrs, 10)
     model = model.to(device)
@@ -49,7 +53,7 @@ def main():
         accuracy = evaluate(model, testloader, device)
         print(f"Epoch {epoch + 1}, Loss: {running_loss / len(trainloader)}, Accuracy: {accuracy}%")
 
-    torch.save(model.state_dict(), "resnet50_svhn.pth")
+    torch.save(model.state_dict(), "resnet18_svhn.pth")
 
 def evaluate(model, testloader, device):
     model.eval()

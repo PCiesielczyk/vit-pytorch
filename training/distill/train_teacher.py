@@ -1,10 +1,19 @@
+import argparse
+
 import torch
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 from tqdm import tqdm
 
-from utils import count_parameters
+from training.utils import count_parameters
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--dataset', type=str, default="SVHN")
+parser.add_argument()
+parser.add_argument('--epochs', type=int, default=10)
+
+FLAGS = parser.parse_args()
 
 batch_size = 128
 epochs = 10
@@ -15,16 +24,19 @@ transform = transforms.Compose([
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
 ])
 
-def main():
+def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    trainset = datasets.SVHN(root='../data', split='train', transform=transform, download=True)
-    extraset = datasets.SVHN(root='../data', split='extra', download=True, transform=transform)
-    combined_trainset = torch.utils.data.ConcatDataset([trainset, extraset])
-    trainloader = torch.utils.data.DataLoader(combined_trainset, batch_size=batch_size, shuffle=True)
+    if args.dataset == "SVHN":
+        trainset = datasets.SVHN(root='../data', split='train', transform=transform, download=True)
+        extraset = datasets.SVHN(root='../data', split='extra', download=True, transform=transform)
+        combined_trainset = torch.utils.data.ConcatDataset([trainset, extraset])
+        trainloader = torch.utils.data.DataLoader(combined_trainset, batch_size=batch_size, shuffle=True)
 
-    testset = datasets.SVHN(root='../data', split='test', transform=transform, download=True)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False)
+        testset = datasets.SVHN(root='../data', split='test', transform=transform, download=True)
+        testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False)
+    else:
+        raise NotImplementedError(f"Dataset {args.dataset} not implemented.")
 
     print('==> Building model..')
     model = models.resnet18(weights=None)
@@ -72,5 +84,5 @@ def evaluate(model, testloader, device):
     return accuracy
 
 if __name__ == '__main__':
-    main()
+    main(FLAGS)
     

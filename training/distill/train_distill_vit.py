@@ -10,15 +10,15 @@ import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 from torch import optim, nn
-from torchvision.models import resnet50, ResNet50_Weights
+from torchvision.models import resnet18
 
-from utils import get_data_loader, count_parameters, calculate_macs
+from training.utils import get_data_loader, count_parameters, calculate_macs
 from vit_pytorch.distill import DistillableViT, DistillWrapper
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', type=str, default="SVHN")
 parser.add_argument('--transform', type=str, default="None")
-parser.add_argument('--epochs', type=int, default=200)
+parser.add_argument('--epochs', type=int, default=10)
 parser.add_argument('--checkpoint', type=int, default=100)
 parser.add_argument('--load_checkpoint', type=str, default=None)
 parser.add_argument('--resume', '-r', action='store_true')
@@ -30,6 +30,9 @@ parser.add_argument('--test_batch', type=int, default=100)
 
 # ViT
 parser.add_argument('--dimhead', default="64", type=int)
+
+# Distill
+parser.add_argument('--teacher_weights', type=str, default=None)
 
 FLAGS = parser.parse_args()
 
@@ -52,7 +55,7 @@ def main(args):
         test_kwargs.update(cuda_kwargs)
 
     # Checkpoint saving and loading
-    PATH = "../checkpoint/"
+    PATH = "../../checkpoint/"
     if not os.path.exists(PATH):
         os.makedirs(PATH)
 
@@ -86,8 +89,15 @@ def main(args):
         raise ValueError(f"Unknown dataset: {args.dataset}")
 
     print('==> Building model..')
-    teacher = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
+
+    teacher = resnet18()
     teacher.fc = nn.Linear(teacher.fc.in_features, num_classes)
+    state_dict = torch.load(args.teacher_weights, device)
+    teacher.load_state_dict(state_dict)
+
+    for param in teacher.parameters():
+        param.requires_grad = False
+    teacher.eval()
 
     student_model = DistillableViT(image_size=image_size, patch_size=patch_size, num_classes=num_classes, dim=int(args.dimhead),
                        depth=6, heads=8, mlp_dim=512, dropout=0.1, emb_dropout=0.1)

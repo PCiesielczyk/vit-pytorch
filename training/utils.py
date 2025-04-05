@@ -1,8 +1,9 @@
 # https://github.com/BoyuanJackChen/MiniProject2_VisTrans.git
+from pathlib import Path
 
-import torch
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 from ptflops import get_model_complexity_info
 from torchvision import datasets, transforms
 
@@ -68,6 +69,9 @@ def analyze_checkpoint(path):
 
 
 def get_data_loader(args, train_kwargs, test_kwargs):
+    current_file = Path(__file__).resolve()
+    data_dir = current_file.parents[2] / "data"
+
     if args.dataset == "CIFAR-10":
         # Normalization parameters from https://github.com/kuangliu/pytorch-cifar/issues/19
         transform_train = transforms.Compose([
@@ -80,9 +84,9 @@ def get_data_loader(args, train_kwargs, test_kwargs):
             transforms.Normalize((0.4914, 0.4822, 0.4465),
                                  (0.247, 0.243, 0.261)),
         ])
-        dataset1 = datasets.CIFAR10('../data', train=True, download=True,
+        dataset1 = datasets.CIFAR10(data_dir, train=True, download=True,
                                     transform=transform_train)  # 50k
-        dataset2 = datasets.CIFAR10('../data', train=False,
+        dataset2 = datasets.CIFAR10(data_dir, train=False,
                                     transform=transform_test)  # 10k
         train_loader = torch.utils.data.DataLoader(dataset1, **train_kwargs)
         test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
@@ -99,9 +103,9 @@ def get_data_loader(args, train_kwargs, test_kwargs):
             transforms.Normalize((0.5071, 0.4867, 0.4408),
                                  (0.2675, 0.2565, 0.2761)),
         ])
-        dataset1 = datasets.CIFAR100('../data', train=True, download=True,
+        dataset1 = datasets.CIFAR100(data_dir, train=True, download=True,
                                      transform=transform_train)  # 50k
-        dataset2 = datasets.CIFAR100('../data', train=False,
+        dataset2 = datasets.CIFAR100(data_dir, train=False,
                                      transform=transform_test)  # 10k
         train_loader = torch.utils.data.DataLoader(dataset1, **train_kwargs)
         test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
@@ -117,9 +121,9 @@ def get_data_loader(args, train_kwargs, test_kwargs):
         transform_train = transforms.Compose(transf_val)
         transform_test = transforms.Compose(transf_val)
 
-        dataset1 = datasets.MNIST('../data', train=True, download=True,
+        dataset1 = datasets.MNIST(data_dir, train=True, download=True,
                                   transform=transform_train)  # 60k
-        dataset2 = datasets.MNIST('../data', train=False,
+        dataset2 = datasets.MNIST(data_dir, train=False,
                                   transform=transform_test)  # 10k
         train_loader = torch.utils.data.DataLoader(dataset1, **train_kwargs)
         test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
@@ -131,9 +135,9 @@ def get_data_loader(args, train_kwargs, test_kwargs):
         ]
         transform_train = transforms.Compose(transf_val)
         transform_test = transforms.Compose(transf_val)
-        dataset1 = datasets.MNIST('../data', train=True, download=True,
+        dataset1 = datasets.MNIST(data_dir, train=True, download=True,
                                   transform=transform_train)  # 60k
-        dataset2 = datasets.MNIST('../data', train=False,
+        dataset2 = datasets.MNIST(data_dir, train=False,
                                   transform=transform_test)  # 10k
         train_loader = torch.utils.data.DataLoader(dataset1, **train_kwargs)
         test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
@@ -157,11 +161,11 @@ def get_data_loader(args, train_kwargs, test_kwargs):
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
         ])
-        trainset = datasets.SVHN(root='./data', split='train', download=True, transform=transform)
-        extraset = datasets.SVHN(root='./data', split='extra', download=True, transform=transform)
+        trainset = datasets.SVHN(root=data_dir, split='train', download=True, transform=transform)
+        extraset = datasets.SVHN(root=data_dir, split='extra', download=True, transform=transform)
         combined_trainset = torch.utils.data.ConcatDataset([trainset, extraset])
 
-        testset = datasets.SVHN(root='./data', split='test', download=True, transform=transform)
+        testset = datasets.SVHN(root=data_dir, split='test', download=True, transform=transform)
         train_loader = torch.utils.data.DataLoader(combined_trainset, **test_kwargs)
         test_loader = torch.utils.data.DataLoader(testset, **train_kwargs)
     else:

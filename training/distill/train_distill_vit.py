@@ -33,6 +33,9 @@ parser.add_argument('--dimhead', default="64", type=int)
 
 # Distill
 parser.add_argument('--teacher_weights', type=str, default=None)
+parser.add_argument('--temperature', type=float, default=3.0)
+parser.add_argument('--alpha', type=float, default=0.5)
+parser.add_argument('--hard', type=bool, default=False)
 
 FLAGS = parser.parse_args()
 
@@ -99,12 +102,15 @@ def main(args):
         param.requires_grad = False
     teacher.eval()
 
-    student_model = DistillableViT(image_size=image_size, patch_size=patch_size, num_classes=num_classes, dim=int(args.dimhead),
-                       depth=6, heads=8, mlp_dim=512, dropout=0.1, emb_dropout=0.1)
+    student_model = DistillableViT(image_size=image_size, patch_size=patch_size, num_classes=num_classes,
+                                   dim=int(args.dimhead),
+                                   depth=6, heads=8, mlp_dim=512, dropout=0.1, emb_dropout=0.1)
 
-    distiller = DistillWrapper(student=student_model, teacher=teacher, temperature=3.0, alpha=0.5, hard=False)
+    distiller = DistillWrapper(student=student_model, teacher=teacher, temperature=args.temperature, alpha=args.alpha,
+                               hard=args.hard)
 
     print(f"Model has {count_parameters(distiller)} parameters")
+    print(f"Distillation with {distiller.alpha} alpha, {distiller.temperature} temperature and hard: {distiller.hard}")
     print(f"Student model has {count_parameters(student_model)} parameters")
 
     if device == 'cuda':

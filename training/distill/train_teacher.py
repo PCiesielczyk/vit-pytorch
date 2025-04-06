@@ -1,42 +1,28 @@
 import argparse
 
 import torch
-import torchvision.transforms as transforms
-import torchvision.datasets as datasets
 import torchvision.models as models
 from tqdm import tqdm
 
-from training.utils import count_parameters
+from training.utils import count_parameters, get_data_loader
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', type=str, default="SVHN")
-parser.add_argument()
+parser.add_argument('--train_batch', type=int, default=128)
+parser.add_argument('--test_batch', type=int, default=128)
 parser.add_argument('--epochs', type=int, default=10)
+parser.add_argument('--lr', type=float, default=0.001)
 
 FLAGS = parser.parse_args()
 
-batch_size = 128
-epochs = 10
-learning_rate = 0.001
-
-transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-])
-
 def main(args):
+    train_kwargs = {'batch_size': args.train_batch, 'shuffle': True}
+    test_kwargs = {'batch_size': args.test_batch, 'shuffle': True}
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    if args.dataset == "SVHN":
-        trainset = datasets.SVHN(root='../data', split='train', transform=transform, download=True)
-        extraset = datasets.SVHN(root='../data', split='extra', download=True, transform=transform)
-        combined_trainset = torch.utils.data.ConcatDataset([trainset, extraset])
-        trainloader = torch.utils.data.DataLoader(combined_trainset, batch_size=batch_size, shuffle=True)
-
-        testset = datasets.SVHN(root='../data', split='test', transform=transform, download=True)
-        testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False)
-    else:
-        raise NotImplementedError(f"Dataset {args.dataset} not implemented.")
+    train_loader, test_loader = get_data_loader(
+        args, train_kwargs, test_kwargs)
 
     print('==> Building model..')
     model = models.resnet18(weights=None)
@@ -47,12 +33,12 @@ def main(args):
     model = model.to(device)
 
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
-    for epoch in range(epochs):
+    for epoch in range(args.epochs):
         model.train()
         running_loss = 0.0
-        for batch_idx, (images, labels) in enumerate(tqdm(trainloader, desc=f"Epoch {epoch + 1}", unit="batch")):
+        for batch_idx, (images, labels) in enumerate(tqdm(train_loader, desc=f"Epoch {epoch + 1}", unit="batch")):
             images, labels = images.to(device), labels.to(device)
 
             optimizer.zero_grad()
@@ -63,10 +49,10 @@ def main(args):
 
             running_loss += loss.item()
 
-        accuracy = evaluate(model, testloader, device)
-        print(f"Epoch {epoch + 1}, Loss: {running_loss / len(trainloader)}, Accuracy: {accuracy}%")
+        accuracy = evaluate(model, test_loader, device)
+        print(f"Epoch {epoch + 1}, Loss: {running_loss / len(train_loader)}, Accuracy: {accuracy}%")
 
-    torch.save(model.state_dict(), "resnet18_svhn.pth")
+    torch.save(model.state_dict(), f"resnet18_{args.dataset}.pth")
 
 def evaluate(model, testloader, device):
     model.eval()

@@ -70,7 +70,8 @@ def analyze_checkpoint(path):
 
 def get_data_loader(args, train_kwargs, test_kwargs):
     current_file = Path(__file__).resolve()
-    data_dir = current_file.parents[2] / "data"
+    data_dir = current_file.parents[1] / "data"
+    print(f"Dataset dir: {data_dir}")
 
     if args.dataset == "CIFAR-10":
         # Normalization parameters from https://github.com/kuangliu/pytorch-cifar/issues/19

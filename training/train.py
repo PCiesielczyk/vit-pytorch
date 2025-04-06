@@ -65,11 +65,11 @@ def main(args):
     # patch_size is the number of pixels for each patch's width and height. Not patch number.
     if args.dataset == "CIFAR-10":
         image_size = 32
-        patch_size = 8
+        patch_size = 4
         num_classes = 10
     elif args.dataset == "CIFAR-100":
         image_size = 32
-        patch_size = 8
+        patch_size = 4
         num_classes = 100
     elif args.dataset == "MNIST" or args.dataset == "FashionMNIST":
         image_size = 28

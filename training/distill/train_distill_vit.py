@@ -31,6 +31,9 @@ parser.add_argument('--test_batch', type=int, default=100)
 
 # ViT
 parser.add_argument('--dimhead', default="64", type=int)
+parser.add_argument('--heads', default="8", type=int)
+parser.add_argument('--depth', default="6", type=int)
+parser.add_argument('--mlp_dim', default="512", type=int)
 
 # Distill
 parser.add_argument('--teacher_weights', type=str, default=None)
@@ -103,9 +106,13 @@ def main(args):
         param.requires_grad = False
     teacher.eval()
 
-    student_model = DistillableViT(image_size=image_size, patch_size=patch_size, num_classes=num_classes,
-                                   dim=int(args.dimhead),
-                                   depth=6, heads=8, mlp_dim=512, dropout=0.1, emb_dropout=0.1)
+    dim = int(args.dimhead)
+    heads = int(args.heads)
+    depth = int(args.depth)
+    mlp_dim = int(args.mlp_dim)
+
+    student_model = DistillableViT(image_size=image_size, patch_size=patch_size, num_classes=num_classes, dim=dim,
+                                   depth=depth, heads=heads, mlp_dim=mlp_dim, dropout=0.1, emb_dropout=0.1)
 
     distiller = DistillWrapper(student=student_model, teacher=teacher, temperature=args.temperature, alpha=args.alpha,
                                hard=args.hard)

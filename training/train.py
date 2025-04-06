@@ -31,6 +31,9 @@ parser.add_argument('--test_batch', type=int, default=100)
 
 # ViT
 parser.add_argument('--dimhead', default="64", type=int)
+parser.add_argument('--heads', default="8", type=int)
+parser.add_argument('--depth', default="6", type=int)
+parser.add_argument('--mlp_dim', default="512", type=int)
 
 FLAGS = parser.parse_args()
 
@@ -86,10 +89,15 @@ def main(args):
     else:
         raise ValueError(f"Unknown dataset: {args.dataset}")
 
+    dim = int(args.dimhead)
+    heads = int(args.heads)
+    depth = int(args.depth)
+    mlp_dim = int(args.mlp_dim)
+
     print('==> Building model..')
     if args.model == "vit":
-        model = ViT(image_size=image_size, patch_size=patch_size, num_classes=num_classes, dim=int(args.dimhead),
-                    depth=6, heads=8, mlp_dim=512, dropout=0.1, emb_dropout=0.1)
+        model = ViT(image_size=image_size, patch_size=patch_size, num_classes=num_classes, dim=dim,
+                    depth=depth, heads=heads, mlp_dim=mlp_dim, dropout=0.1, emb_dropout=0.1)
     else:
         raise ValueError(f"Unknown model: {args.model}")
     print(f"Model has {count_parameters(model)} parameters")

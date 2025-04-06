@@ -9,6 +9,7 @@ import time
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
+import torch.nn.functional as F
 from torch import optim, nn
 from torchvision.models import resnet18
 
@@ -110,7 +111,8 @@ def main(args):
                                hard=args.hard)
 
     print(f"Model has {count_parameters(distiller)} parameters")
-    print(f"Distillation with {distiller.alpha} alpha, {distiller.temperature} temperature and hard: {distiller.hard}")
+    print(
+        f"Distillation with {distiller.alpha} alpha, {distiller.temperature} temperature and {'hard' if args.hard else 'soft'} labels")
     print(f"Student model has {count_parameters(student_model)} parameters")
 
     if device == 'cuda':
@@ -216,7 +218,7 @@ def evaluate_model(distiller, device, data_loader, loss_history, accuracy_histor
         for i, (data, target) in enumerate(data_loader):
             data, target = data.to(device), target.to(device)
             output = distiller.student(data)
-            loss = distiller(data, target)
+            loss = F.cross_entropy(output, target)
             _, pred = torch.max(output, dim=1)
             total_loss += loss.item()
             correct_samples += pred.eq(target).sum().item()

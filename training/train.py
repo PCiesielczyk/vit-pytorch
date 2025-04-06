@@ -215,8 +215,8 @@ def evaluate_model(model, device, data_loader, loss_history, accuracy_history, m
     with torch.no_grad():
         for i, (data, target) in enumerate(data_loader):
             data, target = data.to(device), target.to(device)
-            output = F.log_softmax(model(data), dim=1)
-            loss = F.nll_loss(output, target, reduction='sum')
+            output = model(data)
+            loss = F.cross_entropy(output, target)
             _, pred = torch.max(output, dim=1)
             total_loss += loss.item()
             correct_samples += pred.eq(target).sum().item()

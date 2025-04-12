@@ -94,16 +94,28 @@ def get_data_loader(args, train_kwargs, test_kwargs):
 
     elif args.dataset == "CIFAR-100":
         # Normalization parameters from https://github.com/kuangliu/pytorch-cifar/issues/19
-        transform_train = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.5071, 0.4867, 0.4408),
-                                 (0.2675, 0.2565, 0.2761)),
-        ])
+        normalize = transforms.Normalize((0.5071, 0.4867, 0.4408),
+                                         (0.2675, 0.2565, 0.2761))
+
+        if args.augmentation:
+            print("Using data augmentation for training")
+            transform_train = transforms.Compose([
+                transforms.RandomCrop(32, padding=4),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                normalize,
+            ])
+        else:
+            transform_train = transforms.Compose([
+                transforms.ToTensor(),
+                normalize,
+            ])
+
         transform_test = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize((0.5071, 0.4867, 0.4408),
-                                 (0.2675, 0.2565, 0.2761)),
+            normalize,
         ])
+
         dataset1 = datasets.CIFAR100(data_dir, train=True, download=True,
                                      transform=transform_train)  # 50k
         dataset2 = datasets.CIFAR100(data_dir, train=False,

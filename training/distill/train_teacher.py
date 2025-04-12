@@ -2,16 +2,19 @@ import argparse
 
 import torch
 import torchvision.models as models
+from torch.nn import Dropout
 from tqdm import tqdm
 
+from training.early_stopping import EarlyStopping
 from training.utils import count_parameters, get_data_loader
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', type=str, default="SVHN")
+parser.add_argument('--dataset', type=str, default="CIFAR-100")
 parser.add_argument('--train_batch', type=int, default=128)
 parser.add_argument('--test_batch', type=int, default=128)
-parser.add_argument('--epochs', type=int, default=10)
+parser.add_argument('--epochs', type=int, default=70)
 parser.add_argument('--lr', type=float, default=0.001)
+parser.add_argument('--augmentation', type=bool, default=True)
 
 FLAGS = parser.parse_args()
 
@@ -25,15 +28,20 @@ def main(args):
         args, train_kwargs, test_kwargs)
 
     print('==> Building model..')
-    model = models.resnet18(weights=None)
+    model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
     print(f"Model has {count_parameters(model)} parameters")
 
     num_ftrs = model.fc.in_features
-    model.fc = torch.nn.Linear(num_ftrs, 10)
+    model.fc = torch.nn.Sequential(
+        Dropout(p=0.2),
+        torch.nn.Linear(num_ftrs, 100)
+    )
     model = model.to(device)
 
-    criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    criterion = torch.nn.CrossEntropyLoss(label_smoothing=0.1)
+    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
+    early_stopping = EarlyStopping(patience=7, verbose=True)
 
     for epoch in range(args.epochs):
         model.train()
@@ -49,25 +57,32 @@ def main(args):
 
             running_loss += loss.item()
 
-        accuracy = evaluate(model, test_loader, device)
-        print(f"Epoch {epoch + 1}, Loss: {running_loss / len(train_loader)}, Accuracy: {accuracy}%")
+        val_loss = 0.0
+        accuracy = 0.0
+        model.eval()
+        with torch.no_grad():
+            for images, labels in test_loader:
+                images, labels = images.to(device), labels.to(device)
+                outputs = model(images)
+                loss = criterion(outputs, labels)
+                val_loss += loss.item()
+                _, predicted = torch.max(outputs, 1)
+                accuracy += (predicted == labels).sum().item()
+
+        val_loss /= len(test_loader)
+        accuracy = 100.0 * accuracy / len(test_loader.dataset)
+
+        print(
+            f"Epoch {epoch + 1}, Train Loss: {running_loss / len(train_loader):.4f}, Val Loss: {val_loss:.4f}, Accuracy: {accuracy:.2f}%")
+
+        scheduler.step()
+
+        early_stopping(val_loss, model)
+        if early_stopping.early_stop:
+            print("Early stopping triggered.")
+            break
 
     torch.save(model.state_dict(), f"resnet18_{args.dataset}.pth")
-
-def evaluate(model, testloader, device):
-    model.eval()
-    correct = 0
-    total = 0
-    with torch.no_grad():
-        for images, labels in testloader:
-            images, labels = images.to(device), labels.to(device)
-            outputs = model(images)
-            _, predicted = torch.max(outputs, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-
-    accuracy = 100 * correct / total
-    return accuracy
 
 if __name__ == '__main__':
     main(FLAGS)

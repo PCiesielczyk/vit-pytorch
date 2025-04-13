@@ -28,7 +28,7 @@ def main(args):
         args, train_kwargs, test_kwargs)
 
     print('==> Building model..')
-    model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
+    model = models.resnet34(weights=models.ResNet34_Weights.IMAGENET1K_V1)
     print(f"Model has {count_parameters(model)} parameters")
 
     num_ftrs = model.fc.in_features
@@ -41,7 +41,7 @@ def main(args):
     criterion = torch.nn.CrossEntropyLoss(label_smoothing=0.1)
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
-    early_stopping = EarlyStopping(patience=7, verbose=True)
+    early_stopping = EarlyStopping(patience=20, verbose=True)
 
     for epoch in range(args.epochs):
         model.train()

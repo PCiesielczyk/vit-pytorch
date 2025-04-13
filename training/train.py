@@ -28,6 +28,7 @@ parser.add_argument('--resume', '-r', action='store_true')
 parser.add_argument('--lr', default=1e-4, type=float)
 parser.add_argument('--train_batch', type=int, default=10)
 parser.add_argument('--test_batch', type=int, default=100)
+parser.add_argument('--augmentation', type=bool, default=False)
 
 # ViT
 parser.add_argument('--dimhead', default="64", type=int)

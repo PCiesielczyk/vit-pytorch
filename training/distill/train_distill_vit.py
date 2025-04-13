@@ -11,7 +11,7 @@ import torch
 import torch.backends.cudnn as cudnn
 import torch.nn.functional as F
 from torch import optim, nn
-from torchvision.models import resnet18
+from torchvision.models import resnet18, resnet34
 
 from training.utils import get_data_loader, count_parameters, calculate_macs
 from vit_pytorch.distill import DistillableViT, DistillWrapper
@@ -28,6 +28,7 @@ parser.add_argument('--resume', '-r', action='store_true')
 parser.add_argument('--lr', default=1e-4, type=float)
 parser.add_argument('--train_batch', type=int, default=10)
 parser.add_argument('--test_batch', type=int, default=100)
+parser.add_argument('--augmentation', type=bool, default=False)
 
 # ViT
 parser.add_argument('--dimhead', default="64", type=int)
@@ -97,8 +98,17 @@ def main(args):
 
     print('==> Building model..')
 
-    teacher = resnet18()
-    teacher.fc = nn.Linear(teacher.fc.in_features, num_classes)
+    # We use more complex model for CIFAR-100
+    if args.dataset == "CIFAR-100":
+        teacher = resnet34()
+        teacher.fc = nn.Sequential(
+            nn.Dropout(p=0.2),
+            nn.Linear(teacher.fc.in_features, 100)
+        )
+    else:
+        teacher = resnet18()
+        teacher.fc = nn.Linear(teacher.fc.in_features, num_classes)
+
     state_dict = torch.load(args.teacher_weights, device)
     teacher.load_state_dict(state_dict)
 

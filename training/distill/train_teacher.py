@@ -13,7 +13,7 @@ parser.add_argument('--dataset', type=str, default="CIFAR-100")
 parser.add_argument('--train_batch', type=int, default=128)
 parser.add_argument('--test_batch', type=int, default=128)
 parser.add_argument('--epochs', type=int, default=70)
-parser.add_argument('--lr', type=float, default=0.001)
+parser.add_argument('--lr', type=float, default=0.005)
 parser.add_argument('--augmentation', type=bool, default=True)
 
 FLAGS = parser.parse_args()
@@ -39,8 +39,8 @@ def main(args):
     model = model.to(device)
 
     criterion = torch.nn.CrossEntropyLoss(label_smoothing=0.1)
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
+    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-4)
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.01, epochs=args.epochs, steps_per_epoch=len(train_loader))
     early_stopping = EarlyStopping(patience=20, verbose=True)
 
     for epoch in range(args.epochs):

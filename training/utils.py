@@ -102,8 +102,6 @@ def get_data_loader(args, train_kwargs, test_kwargs):
             transform_train = transforms.Compose([
                 transforms.RandomCrop(32, padding=4),
                 transforms.RandomHorizontalFlip(),
-                transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1),
-                transforms.RandomRotation(15),
                 transforms.ToTensor(),
                 normalize,
             ])

@@ -14,6 +14,7 @@ from torch import optim, nn
 
 from utils import get_data_loader, count_parameters, calculate_macs
 from vit_pytorch import ViT
+from vit_pytorch.t2t import T2TViT
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', default='vit')
@@ -96,11 +97,29 @@ def main(args):
     mlp_dim = int(args.mlp_dim)
 
     print('==> Building model..')
+
+    common_params = {
+        "image_size": image_size,
+        "num_classes": num_classes,
+        "dim": dim,
+        "depth": depth,
+        "heads": heads,
+        "mlp_dim": mlp_dim,
+        "dropout": 0.1,
+        "emb_dropout": 0.1
+    }
+
     if args.model == "vit":
-        model = ViT(image_size=image_size, patch_size=patch_size, num_classes=num_classes, dim=dim,
-                    depth=depth, heads=heads, mlp_dim=mlp_dim, dropout=0.1, emb_dropout=0.1)
+        print(f"ViT: {', '.join(f'{key}={value}' for key, value in {**common_params, 'patch_size': patch_size}.items())}")
+        model = ViT(patch_size=patch_size, **common_params)
+
+    elif args.model == "t2t":
+        t2t_layers = ((3, 2), (3, 1)) if image_size < 224 else ((7, 4), (3, 2), (3, 2))
+        print(f"T2T-ViT: {', '.join(f'{key}={value}' for key, value in {**common_params, 't2t_layers': t2t_layers}.items())}")
+        model = T2TViT(t2t_layers=t2t_layers, **common_params)
     else:
         raise ValueError(f"Unknown model: {args.model}")
+
     print(f"Model has {count_parameters(model)} parameters")
     if device == 'cuda':
         model = torch.nn.DataParallel(model)  # make parallel

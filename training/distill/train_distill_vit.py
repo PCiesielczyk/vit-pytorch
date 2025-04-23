@@ -14,9 +14,10 @@ from torch import optim, nn
 from torchvision.models import resnet18, resnet34
 
 from training.utils import get_data_loader, count_parameters, calculate_macs
-from vit_pytorch.distill import DistillableViT, DistillWrapper
+from vit_pytorch.distill import DistillableViT, DistillableT2TViT, DistillWrapper
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--model', default='vit')
 parser.add_argument('--dataset', type=str, default="SVHN")
 parser.add_argument('--transform', type=str, default="None")
 parser.add_argument('--epochs', type=int, default=10)
@@ -121,8 +122,26 @@ def main(args):
     depth = int(args.depth)
     mlp_dim = int(args.mlp_dim)
 
-    student_model = DistillableViT(image_size=image_size, patch_size=patch_size, num_classes=num_classes, dim=dim,
-                                   depth=depth, heads=heads, mlp_dim=mlp_dim, dropout=0.1, emb_dropout=0.1)
+    common_params = {
+        "image_size": image_size,
+        "num_classes": num_classes,
+        "dim": dim,
+        "depth": depth,
+        "heads": heads,
+        "mlp_dim": mlp_dim,
+        "dropout": 0.1,
+        "emb_dropout": 0.1
+    }
+
+    if args.model == 'vit':
+        print(f"ViT: {', '.join(f'{key}={value}' for key, value in {**common_params, 'patch_size': patch_size}.items())}")
+        student_model = DistillableViT(patch_size=patch_size, **common_params)
+    elif args.model == 't2t':
+        t2t_layers = ((3, 2), (3, 2)) if image_size < 224 else ((7, 4), (3, 2), (3, 2))
+        print(f"T2T-ViT: {', '.join(f'{key}={value}' for key, value in {**common_params, 't2t_layers': t2t_layers}.items())}")
+        student_model = DistillableT2TViT(t2t_layers=t2t_layers, **common_params)
+    else:
+        raise ValueError(f"Unknown model: {args.model}")
 
     distiller = DistillWrapper(student=student_model, teacher=teacher, temperature=args.temperature, alpha=args.alpha,
                                hard=args.hard)

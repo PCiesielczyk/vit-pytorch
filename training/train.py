@@ -114,7 +114,7 @@ def main(args):
         model = ViT(patch_size=patch_size, **common_params)
 
     elif args.model == "t2t":
-        t2t_layers = ((3, 2), (3, 1)) if image_size < 224 else ((7, 4), (3, 2), (3, 2))
+        t2t_layers = ((3, 2), (3, 2)) if image_size < 224 else ((7, 4), (3, 2), (3, 2))
         print(f"T2T-ViT: {', '.join(f'{key}={value}' for key, value in {**common_params, 't2t_layers': t2t_layers}.items())}")
         model = T2TViT(t2t_layers=t2t_layers, **common_params)
     else:

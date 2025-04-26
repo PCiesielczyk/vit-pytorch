@@ -103,11 +103,8 @@ def main(args):
         print(f"ViT: {', '.join(f'{key}={value}' for key, value in {**common_params, 'patch_size': patch_size}.items())}")
         model = ViT(patch_size=patch_size, **common_params)
         if args.pretrained_weights:
-            model.load_state_dict(torch.load(args.pretrained_path))
-            print(f"Weights loaded from: {args.pretrained_path}")
-            for name, param in model.named_parameters():
-                if "mlp_head" not in name:
-                    param.requires_grad = False
+            model.load_state_dict(torch.load(args.pretrained_weights))
+            print(f"Weights loaded from: {args.pretrained_weights}")
 
     elif args.model == "t2t":
         t2t_layers = ((3, 2), (3, 2)) if image_size < 224 else ((7, 4), (3, 2), (3, 2))

@@ -115,8 +115,9 @@ def main(args):
     train_kwargs = {'batch_size': args.train_batch, 'shuffle': True}
     test_kwargs = {'batch_size': args.test_batch, 'shuffle': False}
     if use_cuda:
-        cuda_kwargs = {'num_workers': min(torch.cuda.device_count() * 4, 8),
-                       'pin_memory': True}
+        cuda_kwargs = {'num_workers': 1,
+                       'pin_memory': True,
+                       'shuffle': True}
         train_kwargs.update(cuda_kwargs)
         test_kwargs.update(cuda_kwargs)
     train_loader, test_loader = get_data_loader(args, train_kwargs, test_kwargs)

@@ -105,7 +105,6 @@ def main(args):
         if args.pretrained_weights:
             model.load_state_dict(torch.load(args.pretrained_weights))
             print(f"Weights loaded from: {args.pretrained_weights}")
-
     elif args.model == "t2t":
         t2t_layers = ((3, 2), (3, 2)) if image_size < 224 else ((7, 4), (3, 2), (3, 2))
         print(f"T2T-ViT: {', '.join(f'{key}={value}' for key, value in {**common_params, 't2t_layers': t2t_layers}.items())}")

@@ -31,6 +31,7 @@ parser.add_argument('--decoder_heads', type=int, default=4)
 
 # Dataset Args
 parser.add_argument('--dataset', type=str, default="CIFAR-10")
+parser.add_argument('--augmentation', type=bool, default=False)
 
 # Training Args
 parser.add_argument('--epochs', type=int, default=10)

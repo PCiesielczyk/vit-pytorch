@@ -21,9 +21,6 @@ parser.add_argument('--model', default='vit')
 parser.add_argument('--dataset', type=str, default="SVHN")
 parser.add_argument('--transform', type=str, default="None")
 parser.add_argument('--epochs', type=int, default=200)
-parser.add_argument('--checkpoint', type=int, default=100)
-parser.add_argument('--load_checkpoint', type=str, default=None)
-parser.add_argument('--resume', '-r', action='store_true')
 
 # General
 parser.add_argument('--lr', default=1e-4, type=float)
@@ -32,10 +29,11 @@ parser.add_argument('--test_batch', type=int, default=100)
 parser.add_argument('--augmentation', type=bool, default=False)
 
 # ViT
-parser.add_argument('--dimhead', default="64", type=int)
+parser.add_argument('--dim', default="64", type=int)
 parser.add_argument('--heads', default="8", type=int)
 parser.add_argument('--depth', default="6", type=int)
 parser.add_argument('--mlp_dim', default="512", type=int)
+parser.add_argument('--pretrained_weights', type=str, default=None)
 
 FLAGS = parser.parse_args()
 
@@ -68,7 +66,7 @@ def main(args):
 
     print('==> Loading Dataset..')
     # patch_size is the number of pixels for each patch's width and height. Not patch number.
-    if args.dataset == "CIFAR-10":
+    if args.dataset == "CIFAR-10" or args.dataset == "SVHN":
         image_size = 32
         patch_size = 4
         num_classes = 10
@@ -76,22 +74,14 @@ def main(args):
         image_size = 32
         patch_size = 4
         num_classes = 100
-    elif args.dataset == "MNIST" or args.dataset == "FashionMNIST":
-        image_size = 28
-        patch_size = 7
-        num_classes = 10
     elif args.dataset == "ImageNet_1k":
         image_size = 224
         patch_size = 56
         num_classes = 1000
-    elif args.dataset == "SVHN":
-        image_size = 32
-        patch_size = 4
-        num_classes = 10
     else:
         raise ValueError(f"Unknown dataset: {args.dataset}")
 
-    dim = int(args.dimhead)
+    dim = int(args.dim)
     heads = int(args.heads)
     depth = int(args.depth)
     mlp_dim = int(args.mlp_dim)
@@ -112,6 +102,12 @@ def main(args):
     if args.model == "vit":
         print(f"ViT: {', '.join(f'{key}={value}' for key, value in {**common_params, 'patch_size': patch_size}.items())}")
         model = ViT(patch_size=patch_size, **common_params)
+        if args.pretrained_weights:
+            model.load_state_dict(torch.load(args.pretrained_path))
+            print(f"Weights loaded from: {args.pretrained_path}")
+            for name, param in model.named_parameters():
+                if "mlp_head" not in name:
+                    param.requires_grad = False
 
     elif args.model == "t2t":
         t2t_layers = ((3, 2), (3, 2)) if image_size < 224 else ((7, 4), (3, 2), (3, 2))
@@ -134,15 +130,6 @@ def main(args):
     start_epoch = 1
     train_loss_history, test_loss_history, test_accuracy_history = np.array(
         []), np.array([]), np.array([])
-    # remove this condition when making a new checkpoint
-    if args.load_checkpoint is not None:
-        checkpoint = torch.load(args.load_checkpoint)
-        model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        start_epoch = checkpoint['epoch'] + 1
-        train_loss_history = checkpoint['train_loss']
-        test_loss_history = checkpoint['test_loss']
-        test_accuracy_history = checkpoint['accuracy']
 
     metrics = {"examples_seen": 0, "total_time": 0, "img_per_sec": 0, "core_hours": 0, "macs": macs,
                "params": params}
@@ -178,7 +165,7 @@ def main(args):
                 writer.writeheader()
             writer.writerow(data)
 
-        if epoch % args.checkpoint == 0 or epoch == args.epochs:
+        if epoch == args.epochs:
             torch.save({
                 'epoch': epoch,
                 'model_state_dict': model.state_dict(),
@@ -231,17 +218,19 @@ def evaluate_model(model, device, data_loader, loss_history, accuracy_history, m
     total_samples = len(data_loader.dataset)
     correct_samples = 0
     total_loss = 0
+    total_batches = 0
 
     with torch.no_grad():
-        for i, (data, target) in enumerate(data_loader):
+        for data, target in data_loader:
             data, target = data.to(device), target.to(device)
             output = model(data)
             loss = F.cross_entropy(output, target)
             _, pred = torch.max(output, dim=1)
             total_loss += loss.item()
             correct_samples += pred.eq(target).sum().item()
+            total_batches += 1
 
-    avg_loss = total_loss / total_samples
+    avg_loss = total_loss / total_batches
     loss_history = np.append(loss_history, avg_loss)
     accuracy = correct_samples / total_samples
     accuracy_history = np.append(accuracy_history, accuracy)

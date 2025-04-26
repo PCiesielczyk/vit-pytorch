@@ -32,7 +32,7 @@ parser.add_argument('--test_batch', type=int, default=100)
 parser.add_argument('--augmentation', type=bool, default=False)
 
 # ViT
-parser.add_argument('--dimhead', default="64", type=int)
+parser.add_argument('--dim', default="64", type=int)
 parser.add_argument('--heads', default="8", type=int)
 parser.add_argument('--depth', default="6", type=int)
 parser.add_argument('--mlp_dim', default="512", type=int)
@@ -117,7 +117,7 @@ def main(args):
         param.requires_grad = False
     teacher.eval()
 
-    dim = int(args.dimhead)
+    dim = int(args.dim)
     heads = int(args.heads)
     depth = int(args.depth)
     mlp_dim = int(args.mlp_dim)
@@ -249,17 +249,19 @@ def evaluate_model(distiller, device, data_loader, loss_history, accuracy_histor
     total_samples = len(data_loader.dataset)
     correct_samples = 0
     total_loss = 0
+    total_batches = 0
 
     with torch.no_grad():
-        for i, (data, target) in enumerate(data_loader):
+        for data, target in data_loader:
             data, target = data.to(device), target.to(device)
             output = distiller.student(data)
             loss = F.cross_entropy(output, target)
             _, pred = torch.max(output, dim=1)
             total_loss += loss.item()
             correct_samples += pred.eq(target).sum().item()
+            total_batches += 1
 
-    avg_loss = total_loss / total_samples
+    avg_loss = total_loss / total_batches
     loss_history = np.append(loss_history, avg_loss)
     accuracy = correct_samples / total_samples
     accuracy_history = np.append(accuracy_history, accuracy)
@@ -270,6 +272,7 @@ def evaluate_model(distiller, device, data_loader, loss_history, accuracy_histor
           '{:4.2f}'.format(100.0 * correct_samples / total_samples) + '%)\n')
 
     return loss_history, accuracy_history
+
 
 
 if __name__ == "__main__":

@@ -42,6 +42,7 @@ parser.add_argument('--teacher_weights', type=str, default=None)
 parser.add_argument('--temperature', type=float, default=3.0)
 parser.add_argument('--alpha', type=float, default=0.5)
 parser.add_argument('--hard', type=bool, default=False)
+parser.add_argument('--pretrained_weights', type=str, default=None)
 
 FLAGS = parser.parse_args()
 
@@ -136,6 +137,9 @@ def main(args):
     if args.model == 'vit':
         print(f"ViT: {', '.join(f'{key}={value}' for key, value in {**common_params, 'patch_size': patch_size}.items())}")
         student_model = DistillableViT(patch_size=patch_size, **common_params)
+        if args.pretrained_weights:
+            student_model.load_state_dict(torch.load(args.pretrained_weights))
+            print(f"Weights loaded from: {args.pretrained_weights}")
     elif args.model == 't2t':
         t2t_layers = ((3, 2), (3, 2)) if image_size < 224 else ((7, 4), (3, 2), (3, 2))
         print(f"T2T-ViT: {', '.join(f'{key}={value}' for key, value in {**common_params, 't2t_layers': t2t_layers}.items())}")

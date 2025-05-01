@@ -144,6 +144,9 @@ def main(args):
         t2t_layers = ((3, 2), (3, 2)) if image_size < 224 else ((7, 4), (3, 2), (3, 2))
         print(f"T2T-ViT: {', '.join(f'{key}={value}' for key, value in {**common_params, 't2t_layers': t2t_layers}.items())}")
         student_model = DistillableT2TViT(t2t_layers=t2t_layers, **common_params)
+        if args.pretrained_weights:
+            student_model.load_state_dict(torch.load(args.pretrained_weights))
+            print(f"Weights loaded from: {args.pretrained_weights}")
     else:
         raise ValueError(f"Unknown model: {args.model}")
 

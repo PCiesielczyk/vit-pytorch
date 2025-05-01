@@ -12,6 +12,7 @@ from torch import optim, nn
 from training.utils import get_data_loader, count_parameters, calculate_macs
 from vit_pytorch import ViT
 from vit_pytorch.mae import MAE
+from vit_pytorch.t2t import T2TViT
 
 # --- Argument Parsing ---
 parser = argparse.ArgumentParser(description="MAE Pre-training Script")
@@ -43,6 +44,7 @@ parser.add_argument('--checkpoint_interval', type=int, default=10)
 parser.add_argument('--output_dir', type=str, default='../checkpoint/mae_pretrain')
 
 FLAGS = parser.parse_args()
+
 
 def train_mae_epoch(model, device, optimizer, data_loader, metrics, loss_history):
     total_samples = len(data_loader.dataset)
@@ -79,6 +81,7 @@ def train_mae_epoch(model, device, optimizer, data_loader, metrics, loss_history
 
     return loss_history
 
+
 def evaluate_mae_epoch(model, device, data_loader, metrics, loss_history):
     model.eval()
     total_loss = 0.0
@@ -97,6 +100,7 @@ def evaluate_mae_epoch(model, device, data_loader, metrics, loss_history):
     print(f'\nAverage Validation Reconstruction Loss: {avg_loss:.4f}\n')
 
     return loss_history
+
 
 def main(args):
     use_cuda = torch.cuda.is_available()
@@ -143,20 +147,33 @@ def main(args):
 
     print(f"Dataset: {args.dataset}, Image Size: {image_size}, Patch Size: {patch_size}, Channels: {channels}")
 
+    dim = int(args.dim)
+    heads = int(args.heads)
+    depth = int(args.depth)
+    mlp_dim = int(args.mlp_dim)
+
+    common_params = {
+        "image_size": image_size,
+        "num_classes": num_classes,
+        "dim": dim,
+        "depth": depth,
+        "heads": heads,
+        "mlp_dim": mlp_dim,
+        "dropout": 0.1,
+        "emb_dropout": 0.1
+    }
+
     print(f"Building Encoder: {args.encoder_model}")
     if args.encoder_model == 'vit':
+        print(f"Encoder ViT: {', '.join(f'{key}={value}' for key, value in {**common_params, 'patch_size': patch_size}.items())}")
         encoder = ViT(
-            image_size=image_size,
             patch_size=patch_size,
-            num_classes=num_classes,
-            dim=args.dim,
-            depth=args.depth,
-            heads=args.heads,
-            mlp_dim=args.mlp_dim,
-            channels=channels,
-            dropout=0.1,
-            emb_dropout=0.1
+            **common_params
         )
+    elif args.encoder_model == 't2t':
+        t2t_layers = ((3, 2), (3, 2)) if image_size < 224 else ((7, 4), (3, 2), (3, 2))
+        print(f"Encoder T2T-ViT: {', '.join(f'{key}={value}' for key, value in {**common_params, 't2t_layers': t2t_layers}.items())}")
+        encoder = T2TViT(t2t_layers=t2t_layers, **common_params)
     else:
         raise ValueError(f"Unsupported encoder model: {args.encoder_model}")
 
@@ -169,7 +186,7 @@ def main(args):
         decoder_heads=args.decoder_heads,
     ).to(device)
 
-    print(f"MAE Model Parameters: {count_parameters(mae_model)/1e6:.2f} M")
+    print(f"MAE Model Parameters: {count_parameters(mae_model) / 1e6:.2f} M")
 
     optimizer = optim.AdamW(mae_model.parameters(), lr=args.lr, betas=(0.9, 0.95), weight_decay=args.weight_decay)
 
@@ -219,7 +236,8 @@ def main(args):
             writer.writerow(data)
 
         if epoch % args.checkpoint_interval == 0 or epoch == args.epochs:
-            checkpoint_path = os.path.join(CHECKPOINT_DIR, f"mae_pretrain_{args.encoder_model}_{args.dataset}_e{epoch}.pt")
+            checkpoint_path = os.path.join(CHECKPOINT_DIR,
+                                           f"mae_pretrain_{args.encoder_model}_{args.dataset}_e{epoch}.pt")
             vit_trained_path = os.path.join(CHECKPOINT_DIR, f"vit_pretrained_{args.dataset}_e{epoch}.pt")
             try:
                 save_dict = {
@@ -233,10 +251,11 @@ def main(args):
                 torch.save(encoder.state_dict(), vit_trained_path)
                 print(f"Checkpoint saved: {checkpoint_path}")
             except Exception as e:
-                 print(f"Error saving checkpoint: {e}")
+                print(f"Error saving checkpoint: {e}")
 
-    print(f"\n==> MAE Pre-training Finished. Total time: {metrics['total_time']/3600:.2f} hours <==")
+    print(f"\n==> MAE Pre-training Finished. Total time: {metrics['total_time'] / 3600:.2f} hours <==")
     print(f"Final checkpoints saved in: {CHECKPOINT_DIR}")
+
 
 if __name__ == "__main__":
     main(FLAGS)

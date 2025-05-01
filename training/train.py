@@ -118,7 +118,9 @@ def main(args):
         cudnn.benchmark = True
 
     model = model.to(device)
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    lr = args.lr if not args.pretrained_weights else args.lr / 50
+    print(f"lr: {lr}")
+    optimizer = optim.Adam(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
 
     macs, params = calculate_macs(model, input_size=(3, image_size, image_size))
@@ -169,8 +171,8 @@ def main(args):
                 'train_loss': train_loss_history,
                 'test_loss': test_loss_history,
                 'accuracy': test_accuracy_history,
-            }, PATH + f"/{args.model}_{args.dataset}_e{epoch}_b{args.train_batch}_lr{args.lr}.pt")
-            print(f"Checkpoint {args.dataset}_e{epoch}_b{args.train_batch}_lr{args.lr}.pt saved")
+            }, PATH + f"/{args.model}_{args.dataset}_e{epoch}_b{args.train_batch}_lr{lr}.pt")
+            print(f"Checkpoint {args.dataset}_e{epoch}_b{args.train_batch}_lr{lr}.pt saved")
 
 
 def train_epoch(model, device, optimizer, criterion, data_loader, loss_history, metrics):

@@ -10,8 +10,8 @@ def extract_model_dataset(filename):
         return f"{match.group(1).replace('vit', 'ViT')} {match.group(2)}"
     return None
 
-checkpoint_path = "mae_pretrain_vit_SVHN_e10.pt"
-model_and_dataset = extract_model_dataset(checkpoint_path)
+checkpoint_path = "mae_pretrain_vit_CIFAR-100_e30.pt"
+model_and_dataset = "MAE pretrained CIFAR-100"
 
 checkpoint = torch.load(checkpoint_path, weights_only=False, map_location=torch.device('cpu'))
 

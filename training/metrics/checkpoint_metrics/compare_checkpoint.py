@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import torch
 
-checkpoint_path_1 = "SVHN_ViT_Base.pt"
-checkpoint_path_2 = "ViT_Base_Transfer.pt"
+checkpoint_path_1 = "vit_Base_CIFAR-100.pt"
+checkpoint_path_2 = "ViT_CIFAR-100_Base_Transfer.pt"
 variant = "MAE fine tuned"
 
 checkpoint_1 = torch.load(checkpoint_path_1, weights_only=False, map_location=torch.device('cpu'))
@@ -22,7 +22,7 @@ epochs = range(1, len(test_loss_history_1) + 1)
 plt.figure(figsize=(12, 6))
 plt.plot(train_loss_steps, train_loss_history_1, label='ViT')
 plt.plot(train_loss_steps, train_loss_history_2, label=variant)
-plt.title(f"Train Loss ViT Base vs {variant} SVHN")
+plt.title(f"Train Loss ViT Base vs {variant} CIFAR-100")
 plt.xlabel('Steps')
 plt.ylabel('Loss')
 plt.legend()
@@ -34,7 +34,7 @@ plt.show()
 plt.figure(figsize=(12, 6))
 plt.plot(epochs, test_loss_history_1, label='ViT')
 plt.plot(epochs, test_loss_history_2, label=variant)
-plt.title(f"Test Loss ViT Base vs {variant} SVHN")
+plt.title(f"Test Loss ViT Base vs {variant} CIFAR-100")
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.legend()
@@ -46,7 +46,7 @@ plt.show()
 plt.figure(figsize=(12, 6))
 plt.plot(epochs, accuracy_history_1, label='ViT')
 plt.plot(epochs, accuracy_history_2, label=variant)
-plt.title(f"Accuracy Over Epochs ViT Base vs {variant} SVHN")
+plt.title(f"Accuracy Over Epochs ViT Base vs {variant} CIFAR-100")
 plt.xlabel('Epoch')
 plt.ylabel('Accuracy')
 plt.legend()
